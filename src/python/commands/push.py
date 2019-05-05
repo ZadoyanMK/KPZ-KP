@@ -1,0 +1,85 @@
+from scrapy.commands import ScrapyCommand
+import argparse
+import time
+
+import os
+import sys
+
+
+from configparser import ConfigParser
+from pika import channel, BasicProperties
+from pika.exceptions import ChannelClosed, AMQPError
+from json import JSONEncoder
+
+from internet_chamber_commerce.rabbitmq.RabbitMQ import RabbitMQ
+from internet_chamber_commerce.db import DB
+from internet_chamber_commerce.custom_logger.logger import get_logger
+
+class Command(ScrapyCommand):
+    def get_links():
+        return DB.getByStatus(table="businesses", limit=limit, offset=offset)
+
+    def run(self, args, opts):
+        config = ConfigParser()
+        config.read(os.getcwd() + "/python/configs/config.ini")
+
+        message_count = int(config.get("RABBIT", "message_count"))
+        QUEUE_NAME = config.get("QUEUES", "business_pusher")
+
+        channel = RabbitMQ.get_channel()
+        arg_parser = argparse.ArgumentParser()
+        arg_parser.add_argument('-o', '--offset', type=int, help='SQL select offset', default=0)
+        arg_parser.add_argument('-l', '--limit', type=int, help='SQL select limit', default=0)
+        args = arg_parser.parse_args()
+        offset = args.offset
+        if offset == 1:
+            offset = 0
+        else:
+            offset = offset * 1000
+        limit = args.limit
+        logger = get_logger('['+QUEUE_NAME+']')
+        while True:
+            try:
+                stats = channel.queue_declare(queue=QUEUE_NAME, durable=True)
+                if stats.method.message_count < message_count:
+                    links = get_links()
+                    if links:
+                        for link in links:
+                            try:
+                                channel.basic_publish(
+                                    exchange='',
+                                    routing_key=QUEUE_NAME,
+                                    properties=BasicProperties(delivery_mode=2),
+                                    body=JSONEncoder().encode({
+                                        'id': link['id'],
+                                        'url': link['url']
+                                    })
+                                )
+                                DB.update_link_status(table="businesses",item={
+                                    'id': link['id'],
+                                    'parse_status': "1"
+                                })
+                            except AMQPError as connection_error:
+                                time.sleep(10)
+                                logger.error("AMQP error")
+                                channel = RabbitMQ.get_channel()
+                                channel.queue_declare(queue=QUEUE_NAME, durable=True)
+                                time.sleep(3)
+                        logger.info("Pushed chunk")
+                    else:
+                        logger.info('There are no links in the DB! Sleep for 15 seconds...')
+                        time.sleep(15)
+                else:
+                    logger.debug(f'There are more then {message_count} messages in the Queue! Sleep for 10 seconds...')
+                    time.sleep(10)
+            except ChannelClosed as channel_closed_error:
+                logger.error("Channel closed")
+                logger.info("Sleep for 10 seconds...")
+                time.sleep(10)
+                channel = RabbitMQ.get_channel()
+                channel.queue_declare(queue=QUEUE_NAME, durable=True)
+            except Exception as error:
+                logger.error(repr(error))
+                DB.reconnect()
+                logger.info("Sleep for 10 seconds...")
+                time.sleep(10)
