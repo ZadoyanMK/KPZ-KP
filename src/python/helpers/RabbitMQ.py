@@ -9,7 +9,7 @@ class RabbitMQ:
     @staticmethod
     def get_channel():
         config = ConfigParser()
-        config.read("internet_chamber_commerce/configs/config.ini")
+        config.read("python/configs/config.ini")
 
         connection = BlockingConnection(ConnectionParameters(
             host=config.get("RABBIT", "host"),

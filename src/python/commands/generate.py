@@ -8,9 +8,9 @@ from configparser import ConfigParser
 from pika import channel, BasicProperties
 from pika.exceptions import ChannelClosed, AMQPError
 from json import JSONEncoder
-from python.rabbitmq.RabbitMQ import RabbitMQ
-from python.db import DB
-from python.custom_logger.logger import get_logger
+from python.helpers.RabbitMQ import RabbitMQ
+from python.helpers.db import DB
+from python.helpers.logger import get_logger
 
 
 class Command(ScrapyCommand):
@@ -18,9 +18,9 @@ class Command(ScrapyCommand):
     def get_link(self, number):
         return f"http://www.icc.org/details/{number}.htm"
 
-    def run(self, args, opts):
+    def run(self, args, opts, *a, **kw):
         config = ConfigParser()
-        config.read(os.getcwd() + "/python/configs/config.ini")
+        config.read("python/configs/config.ini")
 
         message_count = int(config.get("RABBIT", "message_count"))
         QUEUE_NAME = config.get("QUEUES", "links_pusher")

@@ -11,7 +11,7 @@ class DB:
     @classmethod
     def setConnection(cls):
         config = ConfigParser()
-        config.read("internet_chamber_commerce/configs/config.ini")
+        config.read("python/configs/config.ini")
 
         cls.link = pymysql.connect(
             host=config.get('DB', 'host'), user=config.get('DB', 'user'),

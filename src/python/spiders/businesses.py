@@ -10,7 +10,7 @@ from scrapy.spider import Spider
 from scrapy.http import Request, Response, XmlResponse
 import scrapy
 
-from ..rabbitmq.RabbitMQ import RabbitMQ
+from python.helpers.RabbitMQ import RabbitMQ
 from configparser import ConfigParser
 import logging
 import json
@@ -21,7 +21,7 @@ from configparser import ConfigParser
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.internet.error import DNSLookupError
 from twisted.internet.error import TimeoutError, TCPTimedOutError
-
+import os
 from ..items import *
 
 
@@ -40,7 +40,7 @@ class BusinessesSpider(Spider):
     def __init__(self, threads=1, *args, **kwargs):
         super().__init__()
         config = ConfigParser()
-        config.read("internet_chamber_commerce/configs/config.ini")
+        config.read("python/configs/config.ini")
         self.config = config
         self.threads = int(threads)
         self.rabbitmq_connect()
@@ -67,7 +67,7 @@ class BusinessesSpider(Spider):
     def next_request(self):
         while True:
             stats = self.channel.queue_declare(self.config.get('QUEUES', 'business_pusher'), durable=True)
-            if stats.method.message_count > 50:
+            if stats.method.message_count > 0:
                 meta, header_frame, data = self.channel.basic_get(self.config.get('QUEUES', 'business_pusher'))
                 if data:
                     data = json.loads(data)

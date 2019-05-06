@@ -1,52 +1,15 @@
 version: '3'
 
 services:
-  # php: &php
-  #   container_name: icc_php
-  #   restart: always
-  #   build:
-  #     context: .
-  #     dockerfile: ./docker/php/Dockerfile
-  #   volumes:
-  #     - ./src:/src
-  #   networks:
-  #     - icc
-  #   depends_on:
-  #     - mysql
-  #     - rabbitmq
-  # app_php_link_saver:
-  #   container_name: icc_php_link_saver
-  #   <<: *php
-  #   working_dir: /src
-  #   command: php ./php/worker/icc/link_saver.php
-  #   volumes:
-  #     - ./src:/src
-  #   networks:
-  #     - icc
-  #   depends_on:
-  #     - mysql
-  #     - rabbitmq
-  # app_php_business_saver:
-  #   container_name: icc_php_business_saver
-  #   <<: *php
-  #   working_dir: /src
-  #   command: php ./php/worker/icc/business_saver.php
-  #   volumes:
-  #     - ./src:/src
-  #   networks:
-  #     - icc
-  #   depends_on:
-  #     - mysql
-  #     - rabbitmq
-  # composer:
-  #   container_name: icc_composer_container
-  #   image: composer:latest
-  #   working_dir: /src/php
-  #   command: install --ignore-platform-reqs
-  #   volumes:
-  #     - ./src:/src
-  #   networks:
-  #     - icc
+  composer:
+    container_name: icc_composer_container
+    image: composer:latest
+    working_dir: /src/php
+    command: install --ignore-platform-reqs
+    volumes:
+      - ./src:/src
+    networks:
+      - icc
   mysql:
     container_name: icc_mysql_container
     image: mysql:5.7
@@ -62,21 +25,48 @@ services:
       - "3306"
     networks:
       - icc
-  # rabbitmq:
-  #   container_name: icc_rabbitmq_container
-  #   hostname: rabbit
-  #   image: rabbitmq:3.6.6-management
-  #   environment:
-  #     RABBITMQ_DEFAULT_USER: user
-  #     RABBITMQ_DEFAULT_PASS: user
-  #   ports:
-  #     - "5672:5672"
-  #     - "15672:15672"
-  #   networks:
-  #     - icc
+  rabbitmq:
+    container_name: icc_rabbitmq_container
+    hostname: rabbit
+    image: rabbitmq:3.6.6-management
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: user
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - icc
+  php: &php
+    container_name: icc_php
+    restart: always
+    build:
+      context: .
+      dockerfile: ./docker/php/Dockerfile
+    command: php ./php/worker/icc/link_saver.php
+    working_dir: /src
+    volumes:
+      - ./src:/src
+    networks:
+      - icc
+    depends_on:
+      - mysql
+      - rabbitmq
+  app_php_business_saver:
+    container_name: icc_php_business_saver
+    <<: *php
+    working_dir: /src
+    command: php ./php/worker/icc/business_saver.php
+    volumes:
+      - ./src:/src
+    networks:
+      - icc
+    depends_on:
+      - mysql
+      - rabbitmq
   python: &python
     container_name: icc_python_parser_container
-    # restart: always
+    restart: always
     build:
       context: .
       dockerfile: ./docker/python/Dockerfile
@@ -85,40 +75,42 @@ services:
       - PYTHONUNBUFFERED=1
     volumes:
       - ./src:/src
-    # command: alembic upgrade head#scrapy generate #scrapy crawl businesses -a threads=1
+    command: scrapy crawl businesses -a threads=1
     networks:
       - icc
     depends_on:
       - mysql
-      # - rabbitmq
-  # app_python_marker:
-  #   container_name: icc_python_marker
-  #   <<: *python
-  #   environment:
-  #     - PYTHONUNBUFFERED=1
-  #   working_dir: /src
-  #   volumes:
-  #     - ./src:/src
-  #   command: python internet_chamber_commerce/rabbitmq/link_marker.py -l=50 -o=1
-  #   networks:
-  #     - icc
-  #   depends_on:
-  #     - mysql
-  #     - rabbitmq
-  # app_python_link_generator:
-  #   container_name: icc_python_link_generator
-  #   <<: *python
-  #   environment:
-  #     - PYTHONUNBUFFERED=1
-  #   working_dir: /src
-  #   volumes:
-  #     - ./src:/src
-  #   command: python internet_chamber_commerce/rabbitmq/link_saver.py
-  #   networks:
-  #     - icc
-  #   depends_on:
-  #     - mysql
-  #     - rabbitmq
+      - rabbitmq
+  app_python_marker:
+    container_name: icc_python_marker
+    restart: always
+    <<: *python
+    environment:
+      - PYTHONUNBUFFERED=1
+    working_dir: /src
+    volumes:
+      - ./src:/src
+    command: scrapy push
+    networks:
+      - icc
+    depends_on:
+      - mysql
+      - rabbitmq
+  app_python_link_generator:
+    container_name: icc_python_link_generator
+    # restart: always
+    <<: *python
+    environment:
+      - PYTHONUNBUFFERED=1
+    working_dir: /src
+    volumes:
+      - ./src:/src
+    command: scrapy generate
+    networks:
+      - icc
+    depends_on:
+      - mysql
+      - rabbitmq
 networks:
   icc:
     driver: bridge
@@ -128,6 +120,5 @@ volumes:
   php:
   python:
   app_php_business_saver:
-  app_php_link_saver:
   app_python_marker:
   app_python_link_generator:

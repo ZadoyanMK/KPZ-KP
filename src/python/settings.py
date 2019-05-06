@@ -1,7 +1,7 @@
 BOT_NAME = 'internet_chamber_commerce'
 
-SPIDER_MODULES = ['spiders']
-NEWSPIDER_MODULE = 'spiders'
+SPIDER_MODULES = ['python.spiders']
+NEWSPIDER_MODULE = 'python.spiders'
 
 
 ROBOTSTXT_OBEY = False
@@ -31,7 +31,7 @@ EXTENSIONS = {
 }
 
 ITEM_PIPELINES = {
-   'pipelines.PageBusinessPipeline': 300,
+   'python.pipelines.PageBusinessPipeline': 300,
 }
 
 MESSAGE_COUNT = 4000
@@ -40,4 +40,4 @@ MESSAGE_COUNT = 4000
 #     "5.79.73.131:13150",
 # ]
 
-COMMANDS_MODULE = 'commands'
+COMMANDS_MODULE = 'python.commands'

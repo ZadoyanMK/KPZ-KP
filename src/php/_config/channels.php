@@ -6,10 +6,10 @@
 return [
     'ICC_LINK_SAVER' => [
         'queue' => 'ICC_LINK_SAVER',
-        'batch' => 500
+        'batch' => 5
     ],
     'ICC_BUSINESS_SAVER' => [
         'queue' => 'ICC_BUSINESS_SAVER',
-        'batch' => 50
+        'batch' => 5
     ]
 ];

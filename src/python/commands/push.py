@@ -11,38 +11,40 @@ from pika import channel, BasicProperties
 from pika.exceptions import ChannelClosed, AMQPError
 from json import JSONEncoder
 
-from internet_chamber_commerce.rabbitmq.RabbitMQ import RabbitMQ
-from internet_chamber_commerce.db import DB
-from internet_chamber_commerce.custom_logger.logger import get_logger
+from python.helpers.RabbitMQ import RabbitMQ
+from python.helpers.db import DB
+from python.helpers.logger import get_logger
 
 class Command(ScrapyCommand):
-    def get_links():
-        return DB.getByStatus(table="businesses", limit=limit, offset=offset)
+
+    def get_links(self):
+        return DB.getByStatus(table="businesses", limit=500, offset=0)
 
     def run(self, args, opts):
         config = ConfigParser()
-        config.read(os.getcwd() + "/python/configs/config.ini")
+        config.read("python/configs/config.ini")
 
         message_count = int(config.get("RABBIT", "message_count"))
         QUEUE_NAME = config.get("QUEUES", "business_pusher")
 
         channel = RabbitMQ.get_channel()
-        arg_parser = argparse.ArgumentParser()
-        arg_parser.add_argument('-o', '--offset', type=int, help='SQL select offset', default=0)
-        arg_parser.add_argument('-l', '--limit', type=int, help='SQL select limit', default=0)
-        args = arg_parser.parse_args()
-        offset = args.offset
+        # arg_parser = argparse.ArgumentParser()
+        # arg_parser.add_argument('-o', '--offset', type=int, help='SQL select offset', default=0)
+        # arg_parser.add_argument('-l', '--limit', type=int, help='SQL select limit', default=0)
+        # args = arg_parser.parse_args()
+
+        offset = 1
         if offset == 1:
             offset = 0
         else:
             offset = offset * 1000
-        limit = args.limit
+        limit = 500
         logger = get_logger('['+QUEUE_NAME+']')
         while True:
             try:
                 stats = channel.queue_declare(queue=QUEUE_NAME, durable=True)
                 if stats.method.message_count < message_count:
-                    links = get_links()
+                    links = self.get_links()
                     if links:
                         for link in links:
                             try:

@@ -22,7 +22,7 @@ def upgrade():
         op.create_table(
             'businesses',
             sa.Column('id', sa.INTEGER(), primary_key=True, autoincrement=True),
-            sa.Column('url', sa.VARCHAR(64)),
+            sa.Column('url', sa.VARCHAR(64), unique=True),
             sa.Column('name', sa.VARCHAR(256)),
 
             sa.Column('address_locality', sa.VARCHAR(64)),
@@ -30,7 +30,7 @@ def upgrade():
             sa.Column('postal_code', sa.VARCHAR(64)),
             sa.Column('street_address', sa.VARCHAR(256)),
 
-            sa.Column('phone', sa.VARCHAR(40)),
+            sa.Column('phone', sa.VARCHAR(64)),
             sa.Column('clear_phone', sa.BIGINT(), unique=True),
 
             sa.Column('fax', sa.VARCHAR(64)),
